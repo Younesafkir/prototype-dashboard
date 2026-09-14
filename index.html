@@ -1,0 +1,2693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototype Dashboard | Production Intelligence & Bottleneck Analytics</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #060913;
+      --bg-surface: #0c1222;
+      --bg-card: #131d36;
+      --bg-card-hover: #1a2849;
+      --border-subtle: #1e2e4f;
+      --border-accent: #2e477a;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --accent-primary: #38bdf8;
+      --accent-primary-glow: rgba(56, 189, 248, 0.15);
+      --accent-secondary: #818cf8;
+
+      --status-done: #10b981;
+      --status-done-bg: rgba(16, 185, 129, 0.12);
+      --status-og: #3b82f6;
+      --status-og-bg: rgba(59, 130, 246, 0.12);
+      --status-rework: #f59e0b;
+      --status-rework-bg: rgba(245, 158, 11, 0.15);
+      --status-stopped: #ef4444;
+      --status-stopped-bg: rgba(239, 68, 68, 0.18);
+      --status-remain: #475569;
+      --status-remain-bg: rgba(71, 85, 105, 0.15);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+
+      --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --bg-base: #f8fafc;
+        --bg-surface: #ffffff;
+        --bg-card: #f1f5f9;
+        --bg-card-hover: #e2e8f0;
+        --border-subtle: #cbd5e1;
+        --border-accent: #94a3b8;
+
+        --text-main: #0f172a;
+        --text-muted: #475569;
+        --text-dim: #64748b;
+
+        --accent-primary: #0284c7;
+        --accent-primary-glow: rgba(2, 132, 199, 0.1);
+        --accent-secondary: #4f46e5;
+      }
+    }
+
+    :root[data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #f1f5f9;
+      --bg-card-hover: #e2e8f0;
+      --border-subtle: #cbd5e1;
+      --border-accent: #94a3b8;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+
+      --accent-primary: #0284c7;
+      --accent-primary-glow: rgba(2, 132, 199, 0.1);
+      --accent-secondary: #4f46e5;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container {
+      max-width: 1740px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    /* Inline SVG Icon Helper */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.125rem;
+      height: 1.125rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    /* Top Navbar */
+    .top-navbar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent-primary), #6366f1);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title-group h1 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-badge {
+      font-size: 0.725rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: var(--accent-primary-glow);
+      color: var(--accent-primary);
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid var(--accent-primary);
+      font-family: var(--font-mono);
+    }
+
+    .brand-title-group p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Build Selector Control Bar */
+    .build-selectors-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 5px 10px;
+      border-radius: var(--radius-md);
+      flex-wrap: wrap;
+    }
+
+    .selector-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .selector-item label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .selector-select {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.825rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .selector-select:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .selector-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-subtle);
+      margin: 0 4px;
+    }
+
+    .action-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .target-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
+    }
+
+    .target-box label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .target-box input {
+      width: 55px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border-accent);
+      color: var(--text-main);
+      padding: 2px 4px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .target-box input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    .sync-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-size: 0.775rem;
+      color: var(--text-muted);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--status-done);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .pulse-dot.syncing {
+      background: var(--accent-primary);
+      animation: pulse 0.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .btn-action {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      padding: 0.5rem 0.85rem;
+      border-radius: var(--radius-md);
+      font-family: var(--font-display);
+      font-size: 0.825rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .btn-action:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: #060913;
+      border-color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      background: #7dd3fc;
+      color: #060913;
+    }
+
+    .btn-briefing {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(56, 189, 248, 0.15));
+      border-color: rgba(99, 102, 241, 0.5);
+      color: var(--text-main);
+    }
+
+    .btn-briefing:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(56, 189, 248, 0.3));
+      border-color: var(--accent-primary);
+    }
+
+    .icon-spin {
+      transition: transform 0.6s ease;
+    }
+
+    .btn-action.spinning .icon-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error Notification Banner */
+    .error-banner {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--status-stopped);
+      color: #fca5a5;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    /* Executive Standup Banner */
+    .standup-bar {
+      background: linear-gradient(90deg, #0c152a 0%, #111e38 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .standup-left {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+    }
+
+    .standup-badge {
+      background: linear-gradient(135deg, #6366f1, #38bdf8);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .standup-headline {
+      font-size: 0.875rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .standup-headline strong {
+      color: var(--accent-primary);
+    }
+
+    .standup-stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .standup-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .standup-stat-item span {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Dynamic Filter Bar */
+    .filter-bar-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .filter-group-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .filter-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-family: var(--font-body);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .btn-reset-filters {
+      background: transparent;
+      border: 1px dashed var(--border-accent);
+      color: var(--text-muted);
+      padding: 0.35rem 0.65rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-reset-filters:hover {
+      color: var(--text-main);
+      border-color: var(--accent-primary);
+    }
+
+    .filter-status-info {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .filter-status-info span {
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    /* KPI Summary Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.15rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-accent);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--kpi-accent, var(--accent-primary));
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-icon-box {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--kpi-accent-bg, var(--accent-primary-glow));
+      color: var(--kpi-accent, var(--accent-primary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kpi-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--text-main);
+      line-height: 1.1;
+    }
+
+    .kpi-delta-pill {
+      font-size: 0.725rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .kpi-delta-positive {
+      background: rgba(16, 185, 129, 0.18);
+      color: var(--status-done);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .kpi-delta-neutral {
+      background: var(--bg-card);
+      color: var(--text-muted);
+    }
+
+    .kpi-subtext {
+      font-size: 0.775rem;
+      color: var(--text-dim);
+    }
+
+    /* Bottleneck Intelligence & Diagnostic Card */
+    .diagnostic-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 1100px) {
+      .diagnostic-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .diagnostic-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .diagnostic-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .diagnostic-cards-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .diag-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
+    }
+
+    .diag-stat-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .diag-stat-val {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .diag-stat-hint {
+      font-size: 0.725rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .ai-rec-box {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(99, 102, 241, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .ai-rec-text {
+      font-size: 0.825rem;
+      color: var(--text-main);
+      line-height: 1.45;
+    }
+
+    .ai-rec-text strong {
+      color: var(--accent-primary);
+    }
+
+    /* 13-Station Pipeline Visualizer */
+    .pipeline-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .stations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+      gap: 0.65rem;
+      overflow-x: auto;
+    }
+
+    .station-node {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 0.6rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.2s;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .station-node:hover {
+      border-color: var(--accent-primary);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .station-node.active-selected {
+      border-color: var(--accent-primary);
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+    }
+
+    .station-node.has-bottleneck {
+      border-color: var(--status-rework);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+    }
+
+    .station-node.has-stopped {
+      border-color: var(--status-stopped);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+    }
+
+    .station-seq {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .station-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 14px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .station-count-main {
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .station-progress-bar {
+      height: 6px;
+      background: var(--status-remain-bg);
+      border-radius: 3px;
+      display: flex;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .prog-seg {
+      height: 100%;
+      transition: width 0.3s;
+    }
+
+    .prog-done { background: var(--status-done); }
+    .prog-og { background: var(--status-og); }
+    .prog-rework { background: var(--status-rework); }
+    .prog-stopped { background: var(--status-stopped); }
+    .prog-remain { background: var(--status-remain); }
+
+    .station-tags-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .pill-rework { background: var(--status-rework-bg); color: var(--status-rework); }
+    .pill-stopped { background: var(--status-stopped-bg); color: var(--status-stopped); }
+    .pill-og { background: var(--status-og-bg); color: var(--status-og); }
+
+    /* Deep-Dive Grid: Family, Powertrain, Defect Pareto */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .insight-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+    }
+
+    .breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .breakdown-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .breakdown-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .breakdown-label {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .breakdown-stats {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    .bar-track {
+      height: 8px;
+      background: var(--bg-card);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary), #6366f1);
+      border-radius: 4px;
+      transition: width 0.4s;
+    }
+
+    /* Defect Pareto Bars */
+    .pareto-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    .pareto-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s;
+    }
+
+    .pareto-item:hover {
+      background: var(--bg-card);
+    }
+
+    .pareto-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.775rem;
+    }
+
+    .pareto-name {
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+
+    .pareto-count {
+      font-family: var(--font-mono);
+      color: var(--status-rework);
+      font-weight: 700;
+    }
+
+    .pareto-bar-track {
+      height: 6px;
+      background: var(--bg-card);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .pareto-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--status-rework), #ef4444);
+      border-radius: 3px;
+    }
+
+    /* Defect & Quality Ledger Section */
+    .quality-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+    }
+
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .table-filter-pills {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-pill:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+    }
+
+    .filter-pill.active {
+      background: var(--accent-primary-glow);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .table-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .table-search-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      width: 260px;
+    }
+
+    .table-search-box input {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      width: 100%;
+      outline: none;
+    }
+
+    .defect-table-wrapper {
+      overflow-x: auto;
+      max-height: 480px;
+    }
+
+    .defect-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.825rem;
+      text-align: left;
+    }
+
+    .defect-table th {
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .defect-table td {
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .defect-table tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    .cavity-badge {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.725rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 580px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      color: var(--text-main);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-group label {
+      font-size: 0.775rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .input-group input {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      outline: none;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .modal-footer {
+      margin-top: 1.25rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Toast Notification */
+    .toast-notice {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #060913;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 2000;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast-notice.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .top-navbar { flex-direction: column; align-items: flex-start; }
+      .action-controls { width: 100%; justify-content: space-between; }
+      .build-selectors-bar { width: 100%; }
+      .standup-bar { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      .top-navbar, .filter-bar-container, .action-controls, .btn-action, .btn-briefing, .toast-notice { display: none !important; }
+      .pipeline-container, .insight-card, .quality-container, .diagnostic-panel { border: 1px solid #ccc; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Top Navigation & Controller Bar -->
+    <header class="top-navbar">
+      <div class="brand-section">
+        <div class="brand-logo" id="brandLogoText">PROTO</div>
+        <div class="brand-title-group">
+          <h1>
+            Prototype Dashboard
+            <span class="brand-badge" id="activeBuildBadge">L461 • VB3 • MY28</span>
+          </h1>
+          <p>Real-Time 13-Station Throughput, Bottleneck & Quality Analytics</p>
+        </div>
+      </div>
+
+      <!-- Build & Program Selectors -->
+      <div class="build-selectors-bar">
+        <div class="selector-item">
+          <label for="selectLine">Line:</label>
+          <select id="selectLine" class="selector-select" onchange="onConfigChange()">
+            <option value="L461">L461</option>
+            <option value="L460">L460</option>
+          </select>
+        </div>
+
+        <div class="selector-divider"></div>
+
+        <div class="selector-item">
+          <label for="selectBuild">Build:</label>
+          <select id="selectBuild" class="selector-select" onchange="onBuildSelectChange()">
+            <option value="VB1">VB1</option>
+            <option value="VB2">VB2</option>
+            <option value="VB3" selected>VB3</option>
+            <option value="TT">TT</option>
+            <option value="PP">PP</option>
+            <option value="__ADD_BUILD__">+ Add Build...</option>
+          </select>
+        </div>
+
+        <div class="selector-divider"></div>
+
+        <div class="selector-item">
+          <label for="selectMY">MY:</label>
+          <select id="selectMY" class="selector-select" onchange="onMYSelectChange()">
+            <option value="MY27">MY27</option>
+            <option value="MY28" selected>MY28</option>
+            <option value="MY29">MY29</option>
+            <option value="__ADD_MY__">+ Add MY...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="action-controls">
+        <div class="target-box" title="Total planned harness quantity">
+          <label for="targetQtyInput">Target:</label>
+          <input type="number" id="targetQtyInput" value="46" min="1" onchange="onTargetQtyChange(this.value)">
+        </div>
+
+        <div class="sync-status-badge">
+          <span class="pulse-dot" id="syncPulse"></span>
+          <span id="syncText">Sync in <strong id="countdown">30</strong>s</span>
+        </div>
+
+        <button class="btn-action btn-briefing" onclick="copyStandupBriefing()" title="Copy formatted standup report to clipboard for Teams / WhatsApp">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+          <span>Standup Briefing</span>
+        </button>
+
+        <button class="btn-action btn-primary" id="btnRefresh" onclick="fetchLiveData(true)" title="Fetch latest Google Sheets CSV data">
+          <svg class="icon icon-spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 8"></path><path d="M21 3v5h-5"></path></svg>
+          <span>Refresh</span>
+        </button>
+
+        <button class="btn-action" onclick="openLinkConfigModal()" title="Configure Data Source URLs">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- Executive Standup Summary Strip -->
+    <section class="standup-bar" id="standupBar">
+      <div class="standup-left">
+        <span class="standup-badge">Daily Standup Pulse</span>
+        <div class="standup-headline" id="standupHeadlineText">
+          Loading live production pulse...
+        </div>
+      </div>
+      <div class="standup-stats-strip">
+        <div class="standup-stat-item">
+          <small>Run Rate:</small>
+          <span id="standupVelocity">-- u/day</span>
+        </div>
+        <div class="standup-stat-item">
+          <small>Projected Finish:</small>
+          <span id="standupETC">--</span>
+        </div>
+        <div class="standup-stat-item">
+          <small>First Time Quality:</small>
+          <span id="standupFTQ">--%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filter Bar Section -->
+    <div class="filter-bar-container">
+      <div class="filter-group-left">
+        <span class="filter-label">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          Filters:
+        </span>
+
+        <select id="filterWeek" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Weeks</option>
+        </select>
+
+        <select id="filterFamily" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Families</option>
+        </select>
+
+        <select id="filterPowertrain" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Powertrains</option>
+        </select>
+
+        <select id="filterStationSelect" class="filter-select" onchange="applyFilters()">
+          <option value="ALL">All Stations</option>
+        </select>
+
+        <button class="btn-reset-filters" onclick="resetAllFilters()">Reset Filters</button>
+      </div>
+
+      <div class="filter-status-info">
+        Showing <span id="filteredCount">0</span> of <span id="totalScannedCount">0</span> Units
+      </div>
+    </div>
+
+    <!-- Key Performance Indicators (KPIs) -->
+    <section class="kpi-grid">
+      <!-- Target Plan -->
+      <div class="kpi-card" style="--kpi-accent: #38bdf8; --kpi-accent-bg: rgba(56, 189, 248, 0.12);">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Planned Target</span>
+          <div class="kpi-icon-box">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiTotalPlanned">--</div>
+        </div>
+        <div class="kpi-subtext" id="kpiScannedSub">0 unique harnesses scanned</div>
+      </div>
+
+      <!-- Packaged Output & Daily Delta -->
+      <div class="kpi-card" style="--kpi-accent: #10b981; --kpi-accent-bg: rgba(16, 185, 129, 0.12);">
+        <div class="kpi-header">
+          <span class="kpi-title">Packaged & Ready</span>
+          <div class="kpi-icon-box">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiCompleted">--</div>
+          <span class="kpi-delta-pill kpi-delta-positive" id="kpiDailyDelta">+0 today</span>
+        </div>
+        <div class="kpi-subtext" id="kpiCompletionRate">0% target completed</div>
+      </div>
+
+      <!-- Active WIP -->
+      <div class="kpi-card" style="--kpi-accent: #3b82f6; --kpi-accent-bg: rgba(59, 130, 246, 0.12);">
+        <div class="kpi-header">
+          <span class="kpi-title">In-Progress (WIP)</span>
+          <div class="kpi-icon-box">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiWIP">--</div>
+        </div>
+        <div class="kpi-subtext" id="kpiWipBreakdown">Active on stations 1-12</div>
+      </div>
+
+      <!-- Rework Loop -->
+      <div class="kpi-card" style="--kpi-accent: #f59e0b; --kpi-accent-bg: rgba(245, 158, 11, 0.15);">
+        <div class="kpi-header">
+          <span class="kpi-title">In Rework Loop</span>
+          <div class="kpi-icon-box">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiRework">--</div>
+        </div>
+        <div class="kpi-subtext" id="kpiReworkRate">0% rework rate</div>
+      </div>
+
+      <!-- Critical Halts (Stopped) -->
+      <div class="kpi-card" style="--kpi-accent: #ef4444; --kpi-accent-bg: rgba(239, 68, 68, 0.15);">
+        <div class="kpi-header">
+          <span class="kpi-title">Station Stopped</span>
+          <div class="kpi-icon-box">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          </div>
+        </div>
+        <div class="kpi-value-row">
+          <div class="kpi-value" id="kpiStopped">--</div>
+        </div>
+        <div class="kpi-subtext">Critical line halts</div>
+      </div>
+    </section>
+
+    <!-- Intelligent Bottleneck & Diagnostic Command Section -->
+    <section class="diagnostic-grid">
+      <div class="diagnostic-panel">
+        <div>
+          <div class="diagnostic-header">
+            <div class="section-title">
+              <svg class="icon" style="color: var(--status-rework);" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+              Bottleneck & Chokepoint Diagnostics
+            </div>
+            <div id="bottleneckMainBadge"></div>
+          </div>
+
+          <div class="diagnostic-cards-row">
+            <div class="diag-stat-card">
+              <div class="diag-stat-label">Primary Chokepoint</div>
+              <div class="diag-stat-val" id="diagChokepointStation" style="color: var(--status-rework);">--</div>
+              <div class="diag-stat-hint" id="diagChokepointDetail">0 active stalls</div>
+            </div>
+
+            <div class="diag-stat-card">
+              <div class="diag-stat-label">Downstream Starvation</div>
+              <div class="diag-stat-val" id="diagStarvationRate" style="color: var(--accent-primary);">--</div>
+              <div class="diag-stat-hint">Packaging queue impact</div>
+            </div>
+
+            <div class="diag-stat-card">
+              <div class="diag-stat-label">Estimated Finish Date</div>
+              <div class="diag-stat-val" id="diagFinishDate" style="color: var(--status-done);">--</div>
+              <div class="diag-stat-hint" id="diagFinishHint">Based on current run-rate</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-rec-box">
+          <svg class="icon" style="color: var(--accent-primary); width: 22px; height: 22px; margin-top: 2px;" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <div class="ai-rec-text" id="aiRecommendationText">
+            <strong>Diagnostic Insight:</strong> Analyzing station queue distribution...
+          </div>
+        </div>
+      </div>
+
+      <!-- Historical Progress & Shift Velocity -->
+      <div class="diagnostic-panel">
+        <div class="section-title" style="margin-bottom: 0.75rem;">
+          <svg class="icon" style="color: var(--accent-secondary);" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          Build S-Curve Progress
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.65rem; height: 100%; justify-content: space-around;">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span style="color: var(--text-muted);">Overall Build Progress</span>
+              <span id="scurveProgressText" style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-primary);">0%</span>
+            </div>
+            <div class="bar-track" style="height: 10px;">
+              <div class="bar-fill" id="scurveProgressBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-card); border-radius: var(--radius-sm); padding: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px;">
+              <span>Milestone 50%</span>
+              <span>Milestone 75%</span>
+              <span>Target 100%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-family: var(--font-mono); font-weight: 700;">
+              <span id="milestone50">--</span>
+              <span id="milestone75">--</span>
+              <span id="milestone100">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 Sequential Stations Pipeline Visualization -->
+    <section class="pipeline-container">
+      <div class="section-header-row">
+        <div class="section-title">
+          <svg class="icon" style="color: var(--accent-primary);" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          Sequential 13-Station Production Flow
+          <small style="font-size: 0.75rem; color: var(--text-dim); font-weight: 400; margin-left: 6px;">(Click any station to filter defect table)</small>
+        </div>
+
+        <div class="legend-row">
+          <div class="legend-item"><div class="legend-color" style="background: var(--status-done);"></div> Done</div>
+          <div class="legend-item"><div class="legend-color" style="background: var(--status-og);"></div> OG</div>
+          <div class="legend-item"><div class="legend-color" style="background: var(--status-rework);"></div> Rework</div>
+          <div class="legend-item"><div class="legend-color" style="background: var(--status-stopped);"></div> Stopped</div>
+          <div class="legend-item"><div class="legend-color" style="background: var(--status-remain);"></div> Remain</div>
+        </div>
+      </div>
+
+      <div class="stations-grid" id="stationsGridContainer">
+        <!-- 13 Station nodes dynamically rendered here -->
+      </div>
+    </section>
+
+    <!-- Deep-Dive Analytics: Family Breakdown, Powertrain Throughput, Top Defect Pareto -->
+    <section class="insights-grid">
+      <!-- Family Breakdown -->
+      <div class="insight-card">
+        <div class="section-title" style="margin-bottom: 0.75rem;">
+          <svg class="icon" style="color: #6366f1;" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Family Completion & Rework
+        </div>
+        <div class="breakdown-list" id="familyBreakdownList"></div>
+      </div>
+
+      <!-- Powertrain Breakdown -->
+      <div class="insight-card">
+        <div class="section-title" style="margin-bottom: 0.75rem;">
+          <svg class="icon" style="color: #10b981;" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          Powertrain Throughput (BEV / PHEV / ICE)
+        </div>
+        <div class="breakdown-list" id="powertrainBreakdownList"></div>
+      </div>
+
+      <!-- Top Defect Categories (Pareto) -->
+      <div class="insight-card">
+        <div class="section-title" style="margin-bottom: 0.75rem;">
+          <svg class="icon" style="color: var(--status-rework);" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          Top Defect Pareto Root Causes
+        </div>
+        <div class="pareto-list" id="defectParetoList"></div>
+      </div>
+    </section>
+
+    <!-- Defect & Quality Ledger Section -->
+    <section class="quality-container">
+      <div class="table-toolbar">
+        <div class="section-title">
+          <svg class="icon" style="color: var(--status-rework);" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Quality & Defect Pinpoint Ledger
+        </div>
+
+        <div class="table-filter-pills">
+          <button class="filter-pill active" onclick="filterDefects('ALL', this)">All</button>
+          <button class="filter-pill" onclick="filterDefects('REWORK', this)">Rework Only</button>
+          <button class="filter-pill" onclick="filterDefects('STOPPED', this)">Stopped Only</button>
+          <button class="filter-pill" onclick="filterDefects('WIP', this)">WIP</button>
+          <button class="filter-pill" onclick="filterDefects('PACKAGED', this)">Packaged</button>
+        </div>
+
+        <div class="table-actions-right">
+          <div class="table-search-box">
+            <svg class="icon" style="color: var(--text-dim);" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="defectSearchInput" placeholder="Search IO, cavity, defect, station..." oninput="renderDefectTable()">
+          </div>
+
+          <button class="btn-action" onclick="exportTableToCSV()" title="Export current filtered records to CSV">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="defect-table-wrapper">
+        <table class="defect-table">
+          <thead>
+            <tr>
+              <th>IO / Serial</th>
+              <th>Station</th>
+              <th>Status</th>
+              <th>Defect Category</th>
+              <th>Rework Origin</th>
+              <th>Priority</th>
+              <th>Cavity / Comments Pinpoint</th>
+            </tr>
+          </thead>
+          <tbody id="defectTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- URL Configuration Modal -->
+    <div id="configModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeConfigModal()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Configure Data Source URLs</h2>
+          <button class="modal-close" onclick="closeConfigModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            Active Build: <strong id="modalActiveConfigName" style="color: var(--accent-primary);">L461 - VB3 - MY28</strong>
+          </p>
+
+          <div class="input-group">
+            <label for="currentConfigUrlInput">Active Build CSV Published Link</label>
+            <input type="text" id="currentConfigUrlInput" placeholder="https://docs.google.com/spreadsheets/...">
+          </div>
+
+          <div class="input-group">
+            <label for="l461UrlInput">Default L461 Master CSV Link</label>
+            <input type="text" id="l461UrlInput" placeholder="https://docs.google.com/spreadsheets/...">
+          </div>
+
+          <div class="input-group">
+            <label for="l460UrlInput">Default L460 Master CSV Link</label>
+            <input type="text" id="l460UrlInput" placeholder="https://docs.google.com/spreadsheets/...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-action btn-primary" onclick="saveConfigAndRefresh()">Save & Sync Now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-notice" id="toastNotice">
+      <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span id="toastMsg">Report copied to clipboard!</span>
+    </div>
+
+  </div>
+
+  <script>
+    const DEFAULT_CONFIG = {
+      L461_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTO22eGE_u31vN3cAYC4AYPwpkbeOrA_0L5_dU-9qQSSHO8LKQk42wZV64KJZ0L5lmjoc0Semx1ZD1J/pub?gid=652842013&single=true&output=csv',
+      L460_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfVUTiVDJZYzOtCDeVSX5BsSRFkJSp6APZn3DLe8LTqmpfvfWJvmPwRBlrymKtJ5_xB32bRmsCqKhS/pub?gid=652842013&single=true&output=csv'
+    };
+
+    const STATION_PIPELINE = [
+      "KSK & Pre-Assy", "INSERTION", "BANDAGE", "OUT OF LINE",
+      "GROMMET TEST", "CTT", "Cotation", "OLT",
+      "Beep Production", "Beep Quality", "TORQUE", "CHANNEL", "PACKAGING"
+    ];
+
+    // State Variables
+    let currentLine = 'L461';
+    let currentBuild = 'VB3';
+    let currentMY = 'MY28';
+
+    let customBuilds = ['VB1', 'VB2', 'VB3', 'TT', 'PP'];
+    let customMYs = ['MY27', 'MY28', 'MY29'];
+
+    let rawDataStore = {};
+    let processedUnitsAll = [];
+    let currentFilteredUnits = [];
+    let selectedStationFilter = 'ALL';
+    let currentTableFilter = 'ALL';
+
+    let refreshCountdown = 30;
+    let countdownInterval = null;
+    let currentMetricsSummary = {};
+
+    // Application Lifecycle
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStoredPreferences();
+      updateHeaderBadges();
+      populateStationFilterDropdown();
+      fetchLiveData();
+      startCountdownTimer();
+    });
+
+    function getActiveConfigKey() {
+      return `${currentLine}_${currentBuild}_${currentMY}`;
+    }
+
+    function loadStoredPreferences() {
+      try {
+        const storedLine = localStorage.getItem('PROTO_LINE');
+        if (storedLine) currentLine = storedLine;
+
+        const storedBuild = localStorage.getItem('PROTO_BUILD');
+        if (storedBuild) currentBuild = storedBuild;
+
+        const storedMY = localStorage.getItem('PROTO_MY');
+        if (storedMY) currentMY = storedMY;
+
+        const storedBuildList = localStorage.getItem('PROTO_CUSTOM_BUILDS');
+        if (storedBuildList) {
+          try { customBuilds = JSON.parse(storedBuildList); } catch(e) {}
+        }
+
+        const storedMYList = localStorage.getItem('PROTO_CUSTOM_MYS');
+        if (storedMYList) {
+          try { customMYs = JSON.parse(storedMYList); } catch(e) {}
+        }
+
+        populateBuildAndMYDropdowns();
+
+        document.getElementById('selectLine').value = currentLine;
+        document.getElementById('selectBuild').value = currentBuild;
+        document.getElementById('selectMY').value = currentMY;
+
+        const storedTarget = localStorage.getItem(`PROTO_${getActiveConfigKey()}_TARGET`) || 46;
+        document.getElementById('targetQtyInput').value = storedTarget;
+      } catch (e) {}
+    }
+
+    function populateBuildAndMYDropdowns() {
+      const buildSelect = document.getElementById('selectBuild');
+      buildSelect.innerHTML = '';
+      customBuilds.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        if (b === currentBuild) opt.selected = true;
+        buildSelect.appendChild(opt);
+      });
+      const addBuildOpt = document.createElement('option');
+      addBuildOpt.value = '__ADD_BUILD__';
+      addBuildOpt.textContent = '+ Add Build...';
+      buildSelect.appendChild(addBuildOpt);
+
+      const mySelect = document.getElementById('selectMY');
+      mySelect.innerHTML = '';
+      customMYs.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        if (m === currentMY) opt.selected = true;
+        mySelect.appendChild(opt);
+      });
+      const addMYOpt = document.createElement('option');
+      addMYOpt.value = '__ADD_MY__';
+      addMYOpt.textContent = '+ Add MY...';
+      mySelect.appendChild(addMYOpt);
+    }
+
+    function populateStationFilterDropdown() {
+      const sel = document.getElementById('filterStationSelect');
+      sel.innerHTML = '<option value="ALL">All Stations</option>';
+      STATION_PIPELINE.forEach((s, idx) => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = `${idx + 1}. ${s}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function onBuildSelectChange() {
+      const select = document.getElementById('selectBuild');
+      if (select.value === '__ADD_BUILD__') {
+        const newBuild = prompt('Enter new Build phase name (e.g., VB4, VP, SOP):');
+        if (newBuild && newBuild.trim()) {
+          const cleanName = newBuild.trim().toUpperCase();
+          if (!customBuilds.includes(cleanName)) {
+            customBuilds.push(cleanName);
+            try {
+              localStorage.setItem('PROTO_CUSTOM_BUILDS', JSON.stringify(customBuilds));
+            } catch(e) {}
+          }
+          currentBuild = cleanName;
+          populateBuildAndMYDropdowns();
+          onConfigChange();
+        } else {
+          select.value = currentBuild;
+        }
+      } else {
+        currentBuild = select.value;
+        onConfigChange();
+      }
+    }
+
+    function onMYSelectChange() {
+      const select = document.getElementById('selectMY');
+      if (select.value === '__ADD_MY__') {
+        const newMY = prompt('Enter new Model Year (e.g., MY30, MY31):');
+        if (newMY && newMY.trim()) {
+          const cleanName = newMY.trim().toUpperCase();
+          if (!customMYs.includes(cleanName)) {
+            customMYs.push(cleanName);
+            try {
+              localStorage.setItem('PROTO_CUSTOM_MYS', JSON.stringify(customMYs));
+            } catch(e) {}
+          }
+          currentMY = cleanName;
+          populateBuildAndMYDropdowns();
+          onConfigChange();
+        } else {
+          select.value = currentMY;
+        }
+      } else {
+        currentMY = select.value;
+        onConfigChange();
+      }
+    }
+
+    function onConfigChange() {
+      currentLine = document.getElementById('selectLine').value;
+      currentBuild = document.getElementById('selectBuild').value;
+      currentMY = document.getElementById('selectMY').value;
+
+      try {
+        localStorage.setItem('PROTO_LINE', currentLine);
+        localStorage.setItem('PROTO_BUILD', currentBuild);
+        localStorage.setItem('PROTO_MY', currentMY);
+      } catch (e) {}
+
+      updateHeaderBadges();
+
+      try {
+        const storedTarget = localStorage.getItem(`PROTO_${getActiveConfigKey()}_TARGET`) || 46;
+        document.getElementById('targetQtyInput').value = storedTarget;
+      } catch (e) {}
+
+      selectedStationFilter = 'ALL';
+      document.getElementById('filterStationSelect').value = 'ALL';
+
+      const configKey = getActiveConfigKey();
+      if (rawDataStore[configKey] && rawDataStore[configKey].length > 0) {
+        processRawData(rawDataStore[configKey]);
+      } else {
+        fetchLiveData(true);
+      }
+    }
+
+    function updateHeaderBadges() {
+      const activeText = `${currentLine} • ${currentBuild} • ${currentMY}`;
+      document.getElementById('activeBuildBadge').textContent = activeText;
+      document.getElementById('brandLogoText').textContent = currentBuild;
+      document.title = `Prototype Dashboard | ${currentLine} ${currentBuild} (${currentMY})`;
+    }
+
+    function loadStoredConfig() {
+      try {
+        const configKey = getActiveConfigKey();
+        const activeUrl = localStorage.getItem(`PROTO_URL_${configKey}`) || '';
+        const storedL461 = localStorage.getItem('PROTO_L461_URL') || DEFAULT_CONFIG.L461_URL;
+        const storedL460 = localStorage.getItem('PROTO_L460_URL') || DEFAULT_CONFIG.L460_URL;
+
+        const activeInput = document.getElementById('currentConfigUrlInput');
+        const l461Input = document.getElementById('l461UrlInput');
+        const l460Input = document.getElementById('l460UrlInput');
+
+        if (activeInput) activeInput.value = activeUrl;
+        if (l461Input) l461Input.value = storedL461;
+        if (l460Input) l460Input.value = storedL460;
+
+        const modalConfigName = document.getElementById('modalActiveConfigName');
+        if (modalConfigName) modalConfigName.textContent = `${currentLine} - ${currentBuild} - ${currentMY}`;
+      } catch (e) {}
+    }
+
+    function openLinkConfigModal() {
+      loadStoredConfig();
+      const modal = document.getElementById('configModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeConfigModal() {
+      const modal = document.getElementById('configModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function saveConfigAndRefresh() {
+      const activeUrlVal = (document.getElementById('currentConfigUrlInput').value || '').trim();
+      const l461Val = (document.getElementById('l461UrlInput').value || '').trim();
+      const l460Val = (document.getElementById('l460UrlInput').value || '').trim();
+
+      try {
+        const configKey = getActiveConfigKey();
+        if (activeUrlVal) {
+          localStorage.setItem(`PROTO_URL_${configKey}`, activeUrlVal);
+        } else {
+          localStorage.removeItem(`PROTO_URL_${configKey}`);
+        }
+        if (l461Val) localStorage.setItem('PROTO_L461_URL', l461Val);
+        if (l460Val) localStorage.setItem('PROTO_L460_URL', l460Val);
+      } catch (e) {}
+
+      closeConfigModal();
+      fetchLiveData(true);
+    }
+
+    function getActiveUrl() {
+      try {
+        const configKey = getActiveConfigKey();
+        const specificUrl = localStorage.getItem(`PROTO_URL_${configKey}`);
+        if (specificUrl) return specificUrl;
+
+        if (currentLine === 'L461') {
+          return localStorage.getItem('PROTO_L461_URL') || DEFAULT_CONFIG.L461_URL;
+        } else {
+          return localStorage.getItem('PROTO_L460_URL') || DEFAULT_CONFIG.L460_URL;
+        }
+      } catch (e) {
+        return currentLine === 'L461' ? DEFAULT_CONFIG.L461_URL : DEFAULT_CONFIG.L460_URL;
+      }
+    }
+
+    function onTargetQtyChange(val) {
+      const num = parseInt(val) || 1;
+      try {
+        localStorage.setItem(`PROTO_${getActiveConfigKey()}_TARGET`, num);
+      } catch (e) {}
+      const configKey = getActiveConfigKey();
+      if (rawDataStore[configKey]) {
+        processRawData(rawDataStore[configKey]);
+      }
+    }
+
+    function startCountdownTimer() {
+      clearInterval(countdownInterval);
+      refreshCountdown = 30;
+      updateCountdownDisplay();
+
+      countdownInterval = setInterval(() => {
+        refreshCountdown--;
+        if (refreshCountdown <= 0) {
+          refreshCountdown = 30;
+          fetchLiveData(false);
+        }
+        updateCountdownDisplay();
+      }, 1000);
+    }
+
+    function updateCountdownDisplay() {
+      const el = document.getElementById('countdown');
+      if (el) el.textContent = refreshCountdown;
+    }
+
+    async function fetchLiveData(isManual = false) {
+      const btn = document.getElementById('btnRefresh');
+      const syncPulse = document.getElementById('syncPulse');
+      const errorBanner = document.getElementById('errorBanner');
+
+      if (btn) btn.classList.add('spinning');
+      if (syncPulse) syncPulse.classList.add('syncing');
+      if (errorBanner) errorBanner.style.display = 'none';
+
+      const url = getActiveUrl();
+      const configKey = getActiveConfigKey();
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const csvText = await response.text();
+
+        if (!csvText || csvText.length < 50) {
+          throw new Error('Received empty or invalid CSV from Google Sheets');
+        }
+
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: h => h.replace(/\s+/g, ' ').trim(),
+          transform: v => v.trim(),
+          complete: function(results) {
+            if (results.data && results.data.length > 0) {
+              rawDataStore[configKey] = results.data;
+              populateFilterDropdowns(results.data);
+              processRawData(results.data);
+            } else {
+              throw new Error('No data rows could be extracted from CSV');
+            }
+          },
+          error: function(err) {
+            throw new Error('CSV Parsing Error: ' + err.message);
+          }
+        });
+
+      } catch (err) {
+        console.error('Fetch error:', err);
+        if (errorBanner) {
+          errorBanner.innerHTML = `<strong>⚠️ Data Sync Notice:</strong> ${err.message}. If running locally, please open via GitHub Pages / HTTPS or configure custom published CSV URL.`;
+          errorBanner.style.display = 'block';
+        }
+      } finally {
+        if (btn) btn.classList.remove('spinning');
+        if (syncPulse) syncPulse.classList.remove('syncing');
+        refreshCountdown = 30;
+      }
+    }
+
+    function populateFilterDropdowns(rows) {
+      const weekSet = new Set();
+      const familySet = new Set();
+      const powertrainSet = new Set();
+
+      rows.forEach(r => {
+        const week = (r['Week'] || '').trim();
+        const fam = (r['Familly'] || r['Family'] || '').trim();
+        const bev = (r['BEV'] || '').trim();
+        const phev = (r['PHEV'] || '').trim();
+
+        if (week) weekSet.add(week);
+        if (fam) familySet.add(fam);
+
+        let pt = 'ICE';
+        if (phev === 'PHEV') pt = 'PHEV';
+        else if (bev === 'BEV' || bev.toUpperCase().includes('BEV')) pt = 'BEV';
+        powertrainSet.add(pt);
+      });
+
+      populateSelect('filterWeek', Array.from(weekSet).sort(), 'All Weeks');
+      populateSelect('filterFamily', Array.from(familySet).sort(), 'All Families');
+      populateSelect('filterPowertrain', Array.from(powertrainSet).sort(), 'All Powertrains');
+    }
+
+    function populateSelect(selectId, items, defaultLabel) {
+      const sel = document.getElementById(selectId);
+      const currentVal = sel.value;
+      sel.innerHTML = `<option value="ALL">${defaultLabel}</option>`;
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        if (item === currentVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function resetAllFilters() {
+      document.getElementById('filterWeek').value = 'ALL';
+      document.getElementById('filterFamily').value = 'ALL';
+      document.getElementById('filterPowertrain').value = 'ALL';
+      document.getElementById('filterStationSelect').value = 'ALL';
+      selectedStationFilter = 'ALL';
+      document.querySelectorAll('.station-node').forEach(n => n.classList.remove('active-selected'));
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const configKey = getActiveConfigKey();
+      processRawData(rawDataStore[configKey]);
+    }
+
+    function processRawData(rows) {
+      if (!rows || rows.length === 0) return;
+
+      const ioMap = new Map();
+
+      const weekFilter = document.getElementById('filterWeek').value;
+      const familyFilter = document.getElementById('filterFamily').value;
+      const ptFilter = document.getElementById('filterPowertrain').value;
+      const stationFilter = document.getElementById('filterStationSelect').value;
+
+      rows.forEach(r => {
+        const io = (r['IO'] || r['Harness_ID'] || r['Harness ID'] || '').trim();
+        if (!io) return;
+
+        const station = (r['Station'] || '').trim();
+        let statusRaw = (r['Status'] || '').trim();
+        const status = statusRaw.toUpperCase();
+        const timestamp = r['Timestamp'] || '';
+
+        const week = (r['Week'] || '').trim();
+        const family = (r['Familly'] || r['Family'] || 'Standard').trim();
+        const bev = (r['BEV'] || 'ICE').trim();
+        const phev = (r['PHEV'] || 'NON PHEV').trim();
+
+        let pt = 'ICE';
+        if (phev === 'PHEV') pt = 'PHEV';
+        else if (bev === 'BEV' || bev.toUpperCase().includes('BEV')) pt = 'BEV';
+
+        // Filters evaluation
+        if (weekFilter !== 'ALL' && week !== weekFilter) return;
+        if (familyFilter !== 'ALL' && family !== familyFilter) return;
+        if (ptFilter !== 'ALL' && pt !== ptFilter) return;
+        if (stationFilter !== 'ALL' && station.toUpperCase() !== stationFilter.toUpperCase()) return;
+
+        let priority = parseInt(r['Priority']) || 0;
+
+        const unitData = {
+          io: io,
+          station: station,
+          status: status,
+          timestamp: timestamp,
+          reworkType: r['rework type'] || '',
+          reworkStation: r['Rework station'] || '',
+          stoppedBy: r['Stopped By'] || '',
+          comment: r['Comment'] || '',
+          family: family,
+          bev: bev,
+          phev: phev,
+          powertrain: pt,
+          week: week,
+          priority: priority
+        };
+
+        if (!ioMap.has(io)) {
+          ioMap.set(io, unitData);
+        } else {
+          const existing = ioMap.get(io);
+          if (new Date(timestamp) >= new Date(existing.timestamp)) {
+            ioMap.set(io, unitData);
+          }
+        }
+      });
+
+      currentFilteredUnits = Array.from(ioMap.values());
+      const totalFilteredIOs = currentFilteredUnits.length;
+      const totalScanned = rows.length;
+
+      document.getElementById('filteredCount').textContent = totalFilteredIOs;
+      document.getElementById('totalScannedCount').textContent = totalScanned;
+
+      const targetInput = document.getElementById('targetQtyInput');
+      let targetQty = parseInt(targetInput.value) || totalFilteredIOs || 46;
+      if (targetQty < totalFilteredIOs) targetQty = totalFilteredIOs;
+
+      // Sequential 13 Station Propagation Math
+      const stationStats = STATION_PIPELINE.map(name => ({
+        name: name,
+        done: 0,
+        og: 0,
+        rework: 0,
+        stopped: 0,
+        remain: 0
+      }));
+
+      currentFilteredUnits.forEach(u => {
+        let currentIdx = STATION_PIPELINE.findIndex(s => s.toUpperCase() === u.station.toUpperCase());
+        if (currentIdx === -1) {
+          currentIdx = STATION_PIPELINE.length - 1;
+        }
+
+        // Stations 0 to currentIdx-1 are automatically counted as DONE
+        for (let i = 0; i < currentIdx; i++) {
+          stationStats[i].done++;
+        }
+
+        // Station currentIdx gets the actual current status
+        if (u.status === 'DONE') {
+          stationStats[currentIdx].done++;
+        } else if (u.status === 'OG') {
+          stationStats[currentIdx].og++;
+        } else if (u.status === 'REWORK') {
+          stationStats[currentIdx].rework++;
+        } else if (u.status === 'STOPPED') {
+          stationStats[currentIdx].stopped++;
+        } else {
+          stationStats[currentIdx].done++;
+        }
+
+        // Stations currentIdx+1 to 12 are REMAIN
+        for (let i = currentIdx + 1; i < STATION_PIPELINE.length; i++) {
+          stationStats[i].remain++;
+        }
+      });
+
+      // Account for unstarted buffer from targetQty
+      const unstartedBuffer = Math.max(0, targetQty - totalFilteredIOs);
+      stationStats.forEach(s => {
+        s.remain += unstartedBuffer;
+      });
+
+      // Save Daily Snapshot & Calculate Delta
+      const dailyDelta = updateDailySnapshotEngine(currentFilteredUnits, targetQty);
+
+      // Render Components
+      renderKPIs(currentFilteredUnits, targetQty, dailyDelta);
+      renderBottleneckAndDiagnostics(stationStats, currentFilteredUnits, targetQty);
+      renderStationsPipeline(stationStats, targetQty);
+      renderFamilyBreakdown(currentFilteredUnits);
+      renderPowertrainBreakdown(currentFilteredUnits);
+      renderDefectPareto(currentFilteredUnits);
+      renderDefectTable();
+    }
+
+    function updateDailySnapshotEngine(units, targetQty) {
+      const completed = units.filter(u => u.station.toUpperCase() === 'PACKAGING' && u.status === 'DONE').length;
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const configKey = getActiveConfigKey();
+      const storageKey = `PROTO_SNAPSHOTS_${configKey}`;
+
+      let snapshots = {};
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) snapshots = JSON.parse(stored);
+      } catch(e) {}
+
+      // Find yesterday's packaged count
+      const dates = Object.keys(snapshots).sort();
+      let yesterdayPackaged = 0;
+      if (dates.length > 0) {
+        const prevDate = dates[dates.length - 1] === todayStr && dates.length > 1 ? dates[dates.length - 2] : dates[dates.length - 1];
+        if (prevDate && snapshots[prevDate]) {
+          yesterdayPackaged = snapshots[prevDate].packaged || 0;
+        }
+      }
+
+      // Record today's snapshot
+      snapshots[todayStr] = {
+        date: todayStr,
+        packaged: completed,
+        totalTracked: units.length,
+        target: targetQty,
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(snapshots));
+      } catch(e) {}
+
+      const delta = Math.max(0, completed - yesterdayPackaged);
+      return { delta, yesterdayPackaged, snapshotsCount: Object.keys(snapshots).length };
+    }
+
+    function renderKPIs(units, targetQty, dailyInfo) {
+      const totalScanned = units.length;
+      const completed = units.filter(u => u.station.toUpperCase() === 'PACKAGING' && u.status === 'DONE').length;
+      const rework = units.filter(u => u.status === 'REWORK').length;
+      const stopped = units.filter(u => u.status === 'STOPPED').length;
+      const wip = totalScanned - completed;
+
+      const completionPct = targetQty > 0 ? ((completed / targetQty) * 100).toFixed(1) : 0;
+      const reworkPct = totalScanned > 0 ? ((rework / totalScanned) * 100).toFixed(1) : 0;
+      const ftqPct = totalScanned > 0 ? (((totalScanned - rework - stopped) / totalScanned) * 100).toFixed(1) : 100;
+
+      // Update KPIs
+      document.getElementById('kpiTotalPlanned').textContent = targetQty;
+      document.getElementById('kpiScannedSub').textContent = `${totalScanned} unique harnesses scanned`;
+
+      document.getElementById('kpiCompleted').textContent = completed;
+      document.getElementById('kpiDailyDelta').textContent = `+${dailyInfo.delta || 0} today`;
+      document.getElementById('kpiCompletionRate').textContent = `${completionPct}% build target completed`;
+
+      document.getElementById('kpiWIP').textContent = wip;
+      document.getElementById('kpiRework').textContent = rework;
+      document.getElementById('kpiReworkRate').textContent = `${reworkPct}% active rework rate`;
+      document.getElementById('kpiStopped').textContent = stopped;
+
+      // S-Curve Mini Bar
+      document.getElementById('scurveProgressText').textContent = `${completionPct}%`;
+      document.getElementById('scurveProgressBar').style.width = `${Math.min(100, completionPct)}%`;
+
+      document.getElementById('milestone50').textContent = `${Math.round(targetQty * 0.5)} units`;
+      document.getElementById('milestone75').textContent = `${Math.round(targetQty * 0.75)} units`;
+      document.getElementById('milestone100').textContent = `${targetQty} units`;
+
+      // Standup Bar Sync
+      const remainingUnits = Math.max(0, targetQty - completed);
+      const estVelocity = Math.max(1, dailyInfo.delta > 0 ? dailyInfo.delta : 4.5);
+      const daysToComplete = Math.ceil(remainingUnits / estVelocity);
+
+      const etcDate = new Date();
+      etcDate.setDate(etcDate.getDate() + daysToComplete);
+      const etcDateStr = etcDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      document.getElementById('standupHeadlineText').innerHTML = `
+        Target: <strong>${targetQty}</strong> | Packaged: <strong>${completed}</strong> (${completionPct}%) | Active WIP: <strong>${wip}</strong> | Rework: <strong>${rework}</strong>
+      `;
+      document.getElementById('standupVelocity').textContent = `${estVelocity.toFixed(1)} u/day`;
+      document.getElementById('standupETC').textContent = remainingUnits === 0 ? 'COMPLETED' : `${etcDateStr} (${daysToComplete}d)`;
+      document.getElementById('standupFTQ').textContent = `${ftqPct}%`;
+
+      // Cache metrics for one-click briefing
+      currentMetricsSummary = {
+        line: currentLine,
+        build: currentBuild,
+        my: currentMY,
+        target: targetQty,
+        completed: completed,
+        completionPct: completionPct,
+        wip: wip,
+        rework: rework,
+        stopped: stopped,
+        velocity: estVelocity.toFixed(1),
+        etc: remainingUnits === 0 ? 'COMPLETED' : `${etcDateStr} (${daysToComplete} days)`,
+        ftq: ftqPct
+      };
+    }
+
+    function renderBottleneckAndDiagnostics(stats, units, targetQty) {
+      let maxScore = -1;
+      let bottleneckStation = null;
+
+      stats.forEach(s => {
+        if (s.name.toUpperCase() === 'PACKAGING') return;
+        const score = (s.rework * 4) + (s.stopped * 5) + (s.og * 2);
+        if (score > maxScore) {
+          maxScore = score;
+          bottleneckStation = s;
+        }
+      });
+
+      const bBadge = document.getElementById('bottleneckMainBadge');
+      const chokepointNameEl = document.getElementById('diagChokepointStation');
+      const chokepointDetailEl = document.getElementById('diagChokepointDetail');
+      const starvationRateEl = document.getElementById('diagStarvationRate');
+      const finishDateEl = document.getElementById('diagFinishDate');
+      const finishHintEl = document.getElementById('diagFinishHint');
+      const recTextEl = document.getElementById('aiRecommendationText');
+
+      if (bottleneckStation && maxScore > 0) {
+        bBadge.innerHTML = `
+          <span class="stat-pill pill-rework" style="padding: 4px 10px; font-size: 0.775rem;">
+            ⚠️ Active Bottleneck Detected
+          </span>
+        `;
+        chokepointNameEl.textContent = bottleneckStation.name;
+        chokepointDetailEl.textContent = `${bottleneckStation.rework} rework • ${bottleneckStation.stopped} stopped • ${bottleneckStation.og} in-progress`;
+
+        // Calculate starvation risk
+        const packagingDone = stats.find(s => s.name.toUpperCase() === 'PACKAGING')?.done || 0;
+        const starvationPct = targetQty > 0 ? Math.round(((targetQty - packagingDone) / targetQty) * 100) : 0;
+        starvationRateEl.textContent = `${starvationPct}%`;
+
+        finishDateEl.textContent = currentMetricsSummary.etc || '--';
+        finishHintEl.textContent = `Paced at ${currentMetricsSummary.velocity || 4} units/day`;
+
+        // Actionable Recommendation Engine
+        let rec = '';
+        if (bottleneckStation.name.toUpperCase().includes('COTATION') || bottleneckStation.name.toUpperCase().includes('OLT')) {
+          rec = `<strong>Electrical/Testing Chokepoint:</strong> High queue at <strong>${bottleneckStation.name}</strong> (${bottleneckStation.rework} rework units). Prioritize electrical continuity troubleshooting and re-test cleared units to unblock packaging.`;
+        } else if (bottleneckStation.name.toUpperCase().includes('OUT OF LINE')) {
+          rec = `<strong>Secondary Operations Wave:</strong> <strong>${bottleneckStation.name}</strong> has a surge of rework (${bottleneckStation.rework} units). Expedite Sertissage (crimping) and Bandage rewiring to prevent line starvation.`;
+        } else if (bottleneckStation.stopped > 0) {
+          rec = `<strong>Critical Line Halt:</strong> <strong>${bottleneckStation.name}</strong> has ${bottleneckStation.stopped} STOPPED units. Immediate engineering sign-off or quality clearance required.`;
+        } else {
+          rec = `<strong>Queue Congestion:</strong> Station <strong>${bottleneckStation.name}</strong> is currently holding ${bottleneckStation.og + bottleneckStation.rework} units. Balance operator allocation across adjacent stations.`;
+        }
+        recTextEl.innerHTML = rec;
+      } else {
+        bBadge.innerHTML = `
+          <span class="stat-pill" style="background: var(--status-done-bg); color: var(--status-done); border: 1px solid var(--status-done); padding: 4px 10px; font-size: 0.775rem;">
+            ✅ Production Line Flow Balanced
+          </span>
+        `;
+        chokepointNameEl.textContent = 'None';
+        chokepointDetailEl.textContent = 'All stations flowing smoothly';
+        starvationRateEl.textContent = '0%';
+        finishDateEl.textContent = currentMetricsSummary.etc || 'On Schedule';
+        recTextEl.innerHTML = `<strong>Optimal Flow:</strong> Throughput rate is steady across all 13 stations with zero critical rework clusters.`;
+      }
+    }
+
+    function renderStationsPipeline(stats, targetQty) {
+      const container = document.getElementById('stationsGridContainer');
+      container.innerHTML = '';
+
+      stats.forEach((s, idx) => {
+        const donePct = targetQty > 0 ? (s.done / targetQty) * 100 : 0;
+        const ogPct = targetQty > 0 ? (s.og / targetQty) * 100 : 0;
+        const reworkPct = targetQty > 0 ? (s.rework / targetQty) * 100 : 0;
+        const stoppedPct = targetQty > 0 ? (s.stopped / targetQty) * 100 : 0;
+        const remainPct = Math.max(0, 100 - (donePct + ogPct + reworkPct + stoppedPct));
+
+        const card = document.createElement('div');
+        const isSelected = selectedStationFilter === s.name;
+        card.className = `station-node ${isSelected ? 'active-selected' : ''} ${s.stopped > 0 ? 'has-stopped' : (s.rework > 0 ? 'has-bottleneck' : '')}`;
+        card.onclick = () => selectStationFilter(s.name);
+
+        card.innerHTML = `
+          <div class="station-seq">${idx + 1}</div>
+          <div class="station-name" title="${s.name}">${s.name}</div>
+          <div class="station-count-main">${s.done}</div>
+
+          <div class="station-progress-bar" title="Done: ${s.done} | OG: ${s.og} | Rework: ${s.rework} | Stopped: ${s.stopped} | Remain: ${s.remain}">
+            <div class="prog-seg prog-done" style="width: ${donePct}%;"></div>
+            <div class="prog-seg prog-og" style="width: ${ogPct}%;"></div>
+            <div class="prog-seg prog-rework" style="width: ${reworkPct}%;"></div>
+            <div class="prog-seg prog-stopped" style="width: ${stoppedPct}%;"></div>
+            <div class="prog-seg prog-remain" style="width: ${remainPct}%;"></div>
+          </div>
+
+          <div class="station-tags-row">
+            ${s.rework > 0 ? `<span class="stat-pill pill-rework">RWK: ${s.rework}</span>` : ''}
+            ${s.stopped > 0 ? `<span class="stat-pill pill-stopped">STP: ${s.stopped}</span>` : ''}
+            ${s.og > 0 ? `<span class="stat-pill pill-og">OG: ${s.og}</span>` : ''}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectStationFilter(stationName) {
+      if (selectedStationFilter === stationName) {
+        selectedStationFilter = 'ALL';
+        document.getElementById('filterStationSelect').value = 'ALL';
+      } else {
+        selectedStationFilter = stationName;
+        document.getElementById('filterStationSelect').value = stationName;
+      }
+      applyFilters();
+    }
+
+    function renderFamilyBreakdown(units) {
+      const list = document.getElementById('familyBreakdownList');
+      list.innerHTML = '';
+
+      const familyMap = new Map();
+      units.forEach(u => {
+        const fam = u.family || 'Standard';
+        if (!familyMap.has(fam)) {
+          familyMap.set(fam, { total: 0, done: 0, rework: 0 });
+        }
+        const stat = familyMap.get(fam);
+        stat.total++;
+        if (u.station.toUpperCase() === 'PACKAGING' && u.status === 'DONE') {
+          stat.done++;
+        }
+        if (u.status === 'REWORK') {
+          stat.rework++;
+        }
+      });
+
+      if (familyMap.size === 0) {
+        list.innerHTML = '<div style="color: var(--text-dim); font-size: 0.8rem;">No family data available</div>';
+        return;
+      }
+
+      familyMap.forEach((stats, name) => {
+        const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.innerHTML = `
+          <div class="breakdown-meta">
+            <span class="breakdown-label">${name}</span>
+            <span class="breakdown-stats">
+              <strong>${stats.done}</strong>/${stats.total} Packaged (${pct}%)
+              ${stats.rework > 0 ? `• <span style="color: var(--status-rework); font-weight: 700;">${stats.rework} Rework</span>` : ''}
+            </span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function renderPowertrainBreakdown(units) {
+      const list = document.getElementById('powertrainBreakdownList');
+      list.innerHTML = '';
+
+      const ptMap = new Map();
+      units.forEach(u => {
+        const pt = u.powertrain || 'ICE';
+        if (!ptMap.has(pt)) {
+          ptMap.set(pt, { total: 0, done: 0, rework: 0 });
+        }
+        const stat = ptMap.get(pt);
+        stat.total++;
+        if (u.station.toUpperCase() === 'PACKAGING' && u.status === 'DONE') {
+          stat.done++;
+        }
+        if (u.status === 'REWORK') {
+          stat.rework++;
+        }
+      });
+
+      if (ptMap.size === 0) {
+        list.innerHTML = '<div style="color: var(--text-dim); font-size: 0.8rem;">No powertrain data available</div>';
+        return;
+      }
+
+      ptMap.forEach((stats, name) => {
+        const pct = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.innerHTML = `
+          <div class="breakdown-meta">
+            <span class="breakdown-label">${name}</span>
+            <span class="breakdown-stats">
+              <strong>${stats.done}</strong>/${stats.total} Done (${pct}%)
+              ${stats.rework > 0 ? `• <span style="color: var(--status-rework); font-weight: 700;">${stats.rework} Rework</span>` : ''}
+            </span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function renderDefectPareto(units) {
+      const list = document.getElementById('defectParetoList');
+      list.innerHTML = '';
+
+      const defectCountMap = new Map();
+      units.forEach(u => {
+        if (u.status === 'REWORK' || u.status === 'STOPPED' || (u.reworkType && u.reworkType.trim())) {
+          let cat = (u.reworkType || 'Uncategorized Quality Check').trim();
+          // Normalize defect categories
+          if (cat.toLowerCase().includes('terminal')) cat = 'Terminal Damage / Voie';
+          else if (cat.toLowerCase().includes('circuit')) cat = 'Circuit Cut / Length Variance';
+          else if (cat.toLowerCase().includes('grommet')) cat = 'Grommet Missing / Damaged';
+          else if (cat.toLowerCase().includes('insertion')) cat = 'Insertion Defect';
+          else if (cat.toLowerCase().includes('sertissage')) cat = 'Crimping / Sertissage';
+
+          defectCountMap.set(cat, (defectCountMap.get(cat) || 0) + 1);
+        }
+      });
+
+      const sorted = Array.from(defectCountMap.entries()).sort((a, b) => b[1] - a[1]);
+      const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+
+      if (sorted.length === 0) {
+        list.innerHTML = '<div style="color: var(--text-dim); font-size: 0.8rem; padding: 0.5rem 0;">No active defects logged</div>';
+        return;
+      }
+
+      sorted.slice(0, 5).forEach(([name, count]) => {
+        const barPct = Math.round((count / maxCount) * 100);
+        const item = document.createElement('div');
+        item.className = 'pareto-item';
+        item.onclick = () => {
+          document.getElementById('defectSearchInput').value = name.split('/')[0].trim();
+          renderDefectTable();
+        };
+        item.innerHTML = `
+          <div class="pareto-header">
+            <span class="pareto-name" title="${name}">${name}</span>
+            <span class="pareto-count">${count} units</span>
+          </div>
+          <div class="pareto-bar-track">
+            <div class="pareto-bar-fill" style="width: ${barPct}%;"></div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function filterDefects(filterType, btnEl) {
+      currentTableFilter = filterType;
+      document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      renderDefectTable();
+    }
+
+    function extractCavityTags(comment) {
+      if (!comment) return '';
+      // Extract cavity IDs like C1CA01A, GR-005, CM44A1, Voie 22, etc.
+      const match = comment.match(/(C[0-9A-Z]{4,}|GR-[0-9]{3}|Voie\s+[0-9]+|cav\s+[0-9]+)/gi);
+      if (match) {
+        return Array.from(new Set(match)).map(tag => `<span class="cavity-badge">${tag}</span>`).join('');
+      }
+      return '';
+    }
+
+    function renderDefectTable() {
+      const tbody = document.getElementById('defectTableBody');
+      const searchTerm = (document.getElementById('defectSearchInput').value || '').toLowerCase().trim();
+      tbody.innerHTML = '';
+
+      let filtered = [...currentFilteredUnits];
+
+      if (currentTableFilter === 'REWORK') {
+        filtered = filtered.filter(u => u.status === 'REWORK');
+      } else if (currentTableFilter === 'STOPPED') {
+        filtered = filtered.filter(u => u.status === 'STOPPED');
+      } else if (currentTableFilter === 'WIP') {
+        filtered = filtered.filter(u => u.station.toUpperCase() !== 'PACKAGING' || u.status !== 'DONE');
+      } else if (currentTableFilter === 'PACKAGED') {
+        filtered = filtered.filter(u => u.station.toUpperCase() === 'PACKAGING' && u.status === 'DONE');
+      }
+
+      if (searchTerm) {
+        filtered = filtered.filter(u =>
+          u.io.toLowerCase().includes(searchTerm) ||
+          u.station.toLowerCase().includes(searchTerm) ||
+          u.reworkType.toLowerCase().includes(searchTerm) ||
+          u.comment.toLowerCase().includes(searchTerm) ||
+          u.status.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      filtered.slice(0, 120).forEach(u => {
+        const cavityTags = extractCavityTags(u.comment);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="font-family: var(--font-mono); font-weight: 700;">${u.io}</td>
+          <td>${u.station}</td>
+          <td><span class="stat-pill ${u.status === 'REWORK' ? 'pill-rework' : u.status === 'STOPPED' ? 'pill-stopped' : u.status === 'OG' ? 'pill-og' : 'prog-done'}">${u.status}</span></td>
+          <td>${u.reworkType || '-'}</td>
+          <td>${u.reworkStation || '-'}</td>
+          <td style="font-family: var(--font-mono);">${u.priority || '-'}</td>
+          <td>
+            ${cavityTags}
+            <span>${u.comment || '-'}</span>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">No harnesses found matching the active filters</td></tr>';
+      }
+    }
+
+    function exportTableToCSV() {
+      if (!currentFilteredUnits || currentFilteredUnits.length === 0) {
+        alert('No data available to export.');
+        return;
+      }
+      const headers = ["IO", "Station", "Status", "Defect Type", "Rework Station", "Priority", "Family", "Powertrain", "Week", "Comment", "Timestamp"];
+      const rows = currentFilteredUnits.map(u => [
+        `"${u.io}"`,
+        `"${u.station}"`,
+        `"${u.status}"`,
+        `"${(u.reworkType || '').replace(/"/g, '""')}"`,
+        `"${(u.reworkStation || '').replace(/"/g, '""')}"`,
+        `"${u.priority}"`,
+        `"${u.family}"`,
+        `"${u.powertrain}"`,
+        `"${u.week}"`,
+        `"${(u.comment || '').replace(/"/g, '""')}"`,
+        `"${u.timestamp}"`
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Prototype_${currentLine}_${currentBuild}_${currentMY}_Report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('CSV export downloaded successfully!');
+    }
+
+    function copyStandupBriefing() {
+      const m = currentMetricsSummary;
+      if (!m.line) {
+        showToast('Data is still syncing...');
+        return;
+      }
+      const text = `📊 *[${m.line} ${m.build} ${m.my} Standup Briefing]*
+• Target Build: ${m.target} units
+• Packaged: ${m.completed} / ${m.target} (${m.completionPct}%)
+• In-Progress (WIP): ${m.wip} units
+• In Rework: ${m.rework} units | Stopped: ${m.stopped}
+• First Time Quality (FTQ): ${m.ftq}%
+• Line Velocity: ${m.velocity} units/day
+• Projected Handover: ${m.etc}
+_Generated by Prototype Dashboard_`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Standup Briefing copied to clipboard!');
+      }).catch(() => {
+        showToast('Clipboard access denied');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotice');
+      const msgEl = document.getElementById('toastMsg');
+      if (toast && msgEl) {
+        msgEl.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+    }
+  </script>
+
+</body>
+</html>
